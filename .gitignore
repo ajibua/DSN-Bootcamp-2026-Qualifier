@@ -4,3 +4,4 @@ __pycache__
 *.pyc
 .env
 catboost_info/
+DSN_bootcamp_ml_track_.ipynb
