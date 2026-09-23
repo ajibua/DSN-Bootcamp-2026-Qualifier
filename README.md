@@ -47,19 +47,56 @@ The goal of this project is to build an accurate and robust regression model tha
 ### 2. Feature Engineering
 * **`visibility_ratio`:** Ratio of an item's store visibility to its mean visibility across the entire store chain, identifying prioritized display placement.
 * **`price_per_weight`:** Value density indicator (`product_price / product_weight_kg`).
-* **Multi-Feature Interaction (`store_code × product_price` & `store_format × product_price`)**
+* **Multi-Feature Interaction (`store_format × product_price`)**: Captures the fundamental retail economic identity $\text{total\_sales} \approx \text{units} \times \text{price}$, where store formats scale item demand linearly with price.
+
+### 3. Model Architecture & Ensembling
+We implement a dual-model ensemble that combines two complementary mathematical paradigms:
+1. **Regularized Linear Regression (ElasticNet)**: With $L_1$ and $L_2$ regularization, this model perfectly fits the global linear scaling of store format interactions.
+2. **Gradient Boosted Decision Trees (CatBoost)**: Leveraging native target statistics on high-cardinality nominals (`product_code`, `store_code`, `product_category`) without one-hot explosion or target leakage.
+
+```
+                  ┌──────────────────────┐
+                  │ Preprocessed Features│
+                  └──────────┬───────────┘
+                             │
+              ┌──────────────┴──────────────┐
+              ▼                             ▼
+   ┌──────────────────────┐      ┌──────────────────────┐
+   │ ElasticNet Regression│      │  CatBoost Regressor  │
+   │  (Linear Physics)    │      │ (Non-linear & Items) │
+   └──────────┬───────────┘      └──────────┬───────────┘
+              │                             │
+              └──────────────┬──────────────┘
+                             ▼
+                Weighted Blend (0.35 / 0.65)
+                             │
+                             ▼
+                    Final Sales Forecast
+```
+
+### 4. Empirical Benchmark Performance
+
+| Model | Evaluation Metric (Holdout RMSE) | Public Leaderboard RMSE |
+|---|---|---|
+| **Mean Baseline** | 1,716.87 | — |
+| **LightGBM Regressor** | 1,102.39 | — |
+| **Ridge Regression (Interactions)** | 1,073.42 | — |
+| **ElasticNet Regression (Interactions)** | 1,072.75 | — |
+| **CatBoost Regressor (Native Categoricals)** | 1,071.93 | — |
+| **Dual Ensemble (CatBoost + ElasticNet)** | **1,070.39** | **1,072.15993 (Rank 47)** |
+
 ---
 
 ## Repository Structure
 
 ```text
-├── DSN_Bootcamp_project_train.ipynb         
-├── DSN_Bootcamp_project_test.ipynb                               
-├── train.csv                                
-├── test.csv                                 
-├── sample_submission.csv                                              
-├── requirements.txt                         
-└── README.md                                
+├── DSN_Bootcamp_project_train.ipynb         # Main end-to-end training & analysis notebook
+├── DSN_Bootcamp_project_test.ipynb          # Test inference pipeline
+├── train.csv                                # Training dataset (6,818 rows)
+├── test.csv                                 # Test dataset (1,705 rows)
+├── submission.csv                           # Current top-performing submission file
+├── requirements.txt                         # Python dependencies
+└── README.md                                # Project documentation
 ```
 
 ---
@@ -74,9 +111,13 @@ cd DSN-Bootcamp-2026-Qualifier
 pip install -r requirements.txt
 ```
 
+### 2. Running the Pipeline
+Open and execute [DSN_Bootcamp_project_train.ipynb](file:///c:/Users/HomePC/Documents/Data%20Science/DSN/DSN_Bootcamp_project_train.ipynb) in Jupyter / VS Code from top to bottom. It will perform all data cleaning, EDA, feature encoding, cross-validation, and generate `submission.csv`.
+
 ---
 
 ## Tech Stack
 * **Language:** Python 3.14+
 * **Data Manipulation:** `pandas`, `numpy`
 * **Visualization:** `matplotlib`, `seaborn`
+* **Machine Learning:** `scikit-learn`, `catboost`, `lightgbm`
