@@ -5,3 +5,6 @@ __pycache__
 .env
 catboost_info/
 DSN_bootcamp_ml_track_.ipynb
+train_expanded.csv
+bigmart_external.csv
+DSN_ml_b.ipynb
